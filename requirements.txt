@@ -1,0 +1,6 @@
+mongoose
+dotenv
+express
+jsonwebtoken
+cookie-parser
+nodemailer
