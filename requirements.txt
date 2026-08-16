@@ -1,6 +1,12 @@
-mongoose
-dotenv
-express
-jsonwebtoken
-cookie-parser
-nodemailer
+# Node.js dependencies for Harsh Bank
+# Listed for interview/reference and environment replication
+bcryptjs==3.0.3
+cookie==2.0.1
+cookie-parser==1.4.7
+cookieparser==0.1.0
+dotenv==17.4.2
+express==5.2.1
+jsonwebtoken==9.0.3
+mongoose==9.9.2
+nodemailer==9.0.5
+parser==0.1.4
