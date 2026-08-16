@@ -4,7 +4,7 @@ import {createTransaction} from "../controllers/transaction.controller.js"
 import { createIntialFundTransaction } from "../controllers/transaction.controller.js"
 import { authSystemUserMiddleware } from "../middleware/auth.middleware.js"
 
-export const router=express()
+export const router=express.Router()
 
 
 router.post("/",authmiddleware,createTransaction)

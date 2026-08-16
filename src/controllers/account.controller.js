@@ -9,7 +9,8 @@ export async function createAccountController(req,res){
 
     res.status(201).json({
         message:"the acount has been created",
-        user:user
+        user:user,
+        account:account
     })
 }
 

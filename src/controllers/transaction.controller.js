@@ -37,8 +37,10 @@ export async function createTransaction(req, res) {
         fromAccount,
         toAccount,
         ammount,
-        IdempotentKey
+        IdempotentKey,
+        idempotentKey
     } = req.body;
+    const finalIdempotencyKey = IdempotentKey || idempotentKey;
     console.log(fromAccount)
     console.log(toAccount)
     // ========================================================
@@ -49,7 +51,7 @@ export async function createTransaction(req, res) {
         !fromAccount ||
         !toAccount ||
         !ammount ||
-        !IdempotentKey
+        !finalIdempotencyKey
     ) {
         return res.status(400).json({
             message: "All transaction information is required",
@@ -103,7 +105,7 @@ export async function createTransaction(req, res) {
     //
 
     const existingTransaction = await transaction_model.findOne({
-        idempotencykey: IdempotentKey
+        idempotencykey: finalIdempotencyKey
     });
 
 
@@ -226,7 +228,7 @@ export async function createTransaction(req, res) {
 
             ammount: ammount,
 
-            idempotencykey: IdempotentKey,
+            idempotencykey: finalIdempotencyKey,
 
             status: "pending"
 
@@ -448,8 +450,10 @@ export async function createIntialFundTransaction(req, res) {
     const {
         toAccount,
         ammount,
-        idempotentKey
+        idempotentKey,
+        IdempotentKey
     } = req.body;
+    const finalIdempotencyKey = idempotentKey || IdempotentKey;
 
 
     // ========================================================
@@ -459,7 +463,7 @@ export async function createIntialFundTransaction(req, res) {
     if (
         !toAccount ||
         !ammount ||
-        !idempotentKey
+        !finalIdempotencyKey
     ) {
         return res.status(400).json({
             message: "toAccount, amount and idempotency key are required"
@@ -535,7 +539,7 @@ export async function createIntialFundTransaction(req, res) {
 
             ammount: ammount,
 
-            idempotencykey: idempotentKey,
+            idempotencykey: finalIdempotencyKey,
 
             status: "pending"
 

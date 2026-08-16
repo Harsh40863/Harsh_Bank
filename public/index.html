@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harsh Bank - Premium Banking Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <!-- Background elements for ambient glow -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+    <div class="ambient-glow glow-3"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <h1>Harsh Bank</h1>
+            </div>
+            <div class="user-profile-nav" id="userProfileNav" style="display: none;">
+                <div class="user-badge">
+                    <div class="avatar" id="avatarLetter">U</div>
+                    <div class="user-details">
+                        <span class="user-name" id="navUserName">Loading...</span>
+                        <span class="user-role" id="navUserRole">Customer</span>
+                    </div>
+                </div>
+                <button class="btn btn-outline btn-sm" id="logoutBtn">Log Out</button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Alert Messages Container -->
+            <div id="toastContainer" class="toast-container"></div>
+
+            <!-- View 1: Auth View (Sign In / Sign Up) -->
+            <section id="authView" class="view-panel active">
+                <div class="auth-card glass-panel">
+                    <div class="auth-tabs">
+                        <button class="auth-tab active" id="tabSignIn">Sign In</button>
+                        <button class="auth-tab" id="tabSignUp">Register</button>
+                    </div>
+
+                    <!-- Sign In Form -->
+                    <form id="signInForm" class="auth-form active">
+                        <h2>Welcome Back</h2>
+                        <p class="subtitle">Enter your credentials to access your secure vault.</p>
+                        
+                        <div class="form-group">
+                            <label for="loginEmail">Email Address</label>
+                            <input type="email" id="loginEmail" placeholder="name@example.com" required autocomplete="email">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <span>Sign In</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+
+                    <!-- Sign Up Form -->
+                    <form id="signUpForm" class="auth-form">
+                        <h2>Create Secure Account</h2>
+                        <p class="subtitle">Join Harsh Bank and manage your assets with ease.</p>
+
+                        <div class="form-group">
+                            <label for="registerName">Full Name</label>
+                            <input type="text" id="registerName" placeholder="John Doe" required autocomplete="name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="registerEmail">Email Address</label>
+                            <input type="email" id="registerEmail" placeholder="name@example.com" required autocomplete="email">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="registerPassword">Password</label>
+                            <input type="password" id="registerPassword" placeholder="Minimum 6 characters" minlength="6" required autocomplete="new-password">
+                        </div>
+
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="registerSystemUser">
+                            <label for="registerSystemUser">Register as Developer / System User</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <span>Register Account</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- View 2: Dashboard View (Main Dashboard) -->
+            <section id="dashboardView" class="view-panel">
+                <div class="dashboard-grid">
+                    <!-- Left Sidebar / User Summary & System Toggle -->
+                    <div class="dashboard-sidebar">
+                        <div class="profile-card glass-panel">
+                            <div class="profile-header">
+                                <div class="large-avatar" id="sidebarAvatar">U</div>
+                                <h3 id="sidebarName">Username</h3>
+                                <p id="sidebarEmail">user@example.com</p>
+                                <span class="badge" id="sidebarRoleBadge">Customer</span>
+                            </div>
+                            <div class="divider"></div>
+                            <div class="system-mode-selector">
+                                <h4>Developer Console</h4>
+                                <p class="description">Toggle System Mode to perform initial funding using a System Account.</p>
+                                <div class="toggle-container">
+                                    <label class="switch">
+                                        <input type="checkbox" id="systemModeToggle">
+                                        <span class="slider round"></span>
+                                    </label>
+                                    <span class="toggle-label">Enable System Mode</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Dashboard Content Area -->
+                    <div class="dashboard-main-area">
+                        <!-- System Control Panel (Hidden unless System Mode toggled) -->
+                        <div class="system-panel glass-panel" id="systemPanel" style="display: none;">
+                            <div class="panel-header">
+                                <div class="icon-wrap sys-icon">⚙️</div>
+                                <div>
+                                    <h3>System Funding Console</h3>
+                                    <p class="subtitle">Distribute initial funds from the System Account directly to customers.</p>
+                                </div>
+                            </div>
+                            <div class="divider"></div>
+                            
+                            <div id="systemAuthStatus" class="sys-auth-status alert-box warning">
+                                <span>You are currently logged in as a normal <strong>Customer</strong>. To fund accounts, you must register or log in with a <strong>System User</strong> account.</span>
+                            </div>
+
+                            <form id="systemFundForm" class="grid-form">
+                                <div class="form-group">
+                                    <label for="fundToAccount">Recipient Account ID</label>
+                                    <input type="text" id="fundToAccount" placeholder="Enter target account ID" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="fundAmount">Amount (INR)</label>
+                                    <input type="number" id="fundAmount" placeholder="10000" min="1" required>
+                                </div>
+                                <div class="form-group button-group">
+                                    <label>&nbsp;</label>
+                                    <button type="submit" class="btn btn-secondary btn-block" id="systemFundSubmitBtn" disabled>
+                                        <span>Issue Funds</span>
+                                        <span class="spinner" style="display: none;"></span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Bank Accounts Overview -->
+                        <div class="accounts-panel glass-panel">
+                            <div class="panel-header-action">
+                                <div>
+                                    <h3>My Accounts</h3>
+                                    <p class="subtitle">Manage your deposits and transactional balances.</p>
+                                </div>
+                                <button class="btn btn-primary btn-sm" id="createAccountBtn">
+                                    <span>+ Open New Account</span>
+                                    <span class="spinner" style="display: none;"></span>
+                                </button>
+                            </div>
+                            <div class="divider"></div>
+
+                            <div class="accounts-container" id="accountsList">
+                                <!-- Loading placeholder -->
+                                <div class="loading-state">
+                                    <span class="spinner"></span>
+                                    <p>Retrieving your account details...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fund Transfer Module -->
+                        <div class="transfer-panel glass-panel" id="transferModulePanel">
+                            <div class="panel-header">
+                                <div class="icon-wrap tx-icon">⇄</div>
+                                <div>
+                                    <h3>Transfer Money</h3>
+                                    <p class="subtitle">Securely send money between your accounts or transfer to another user's account.</p>
+                                </div>
+                            </div>
+                            <div class="divider"></div>
+
+                            <form id="transferForm">
+                                <div class="form-row">
+                                    <div class="form-group col-6">
+                                        <label for="txFromAccount">Source Account</label>
+                                        <select id="txFromAccount" required>
+                                            <option value="" disabled selected>Select source account</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-6">
+                                        <label for="txToAccount">Destination Account ID</label>
+                                        <input type="text" id="txToAccount" placeholder="Enter recipient account ID" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-6">
+                                        <label for="txAmount">Amount (INR)</label>
+                                        <input type="number" id="txAmount" placeholder="Enter amount to send" min="1" required>
+                                    </div>
+                                    <div class="form-group col-6">
+                                        <label for="txIdempotencyKey">Idempotency Key (Safe-Retry)</label>
+                                        <div class="input-with-action">
+                                            <input type="text" id="txIdempotencyKey" readonly required>
+                                            <button type="button" class="btn btn-outline btn-sm" id="regenIdempotencyBtn" title="Regenerate Key">↻</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary" id="transferSubmitBtn">
+                                    <span>Execute Transfer</span>
+                                    <span class="spinner" style="display: none;"></span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 Harsh Bank. All rights reserved. Secure TLS 256-bit encryption active.</p>
+            <p class="security-note">⚠️ Note: For development use only. Ledger entry actions are fully immutable.</p>
+        </footer>
+    </div>
+</body>
+</html>

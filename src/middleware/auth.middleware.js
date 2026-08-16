@@ -10,17 +10,17 @@ export async function authmiddleware(req, res, next) {
 
     // Get token from cookie OR Authorization header
     const token =
-        req.cookies.token ||
-        req.headers.authorization?.split(" ")[1];
+        req.headers.authorization?.split(" ")[1] ||
+        req.cookies.token;
 
-    const istokenBlacklist=tokenBlacklistModel.findOne({
+    const istokenBlacklist = await tokenBlacklistModel.findOne({
         token
-    })
+    });
 
-    if(istokenBlacklist){
+    if (istokenBlacklist) {
         return res.status(401).json({
-            message:"Unauthorization entry token is invalid"
-        })
+            message: "Unauthorization entry token is invalid"
+        });
     }
     // No token
     if (!token) {
@@ -71,8 +71,8 @@ export async function authSystemUserMiddleware(req, res, next) {
 
     // Get token from cookie OR Authorization header
     const token =
-        req.cookies.token ||
-        req.headers.authorization?.split(" ")[1];
+        req.headers.authorization?.split(" ")[1] ||
+        req.cookies.token;
     
     // No token
     if (!token) {
@@ -81,14 +81,14 @@ export async function authSystemUserMiddleware(req, res, next) {
             status: false
         });
     }
-    const istokenBlacklist=tokenBlacklistModel.findOne({
+    const istokenBlacklist = await tokenBlacklistModel.findOne({
         token
-    })
+    });
 
-    if(istokenBlacklist){
+    if (istokenBlacklist) {
         return res.status(401).json({
-            message:"Unauthorization entry token is invalid"
-        })
+            message: "Unauthorization entry token is invalid"
+        });
     }
 
     try {

@@ -13,84 +13,99 @@ dotenv.config()
 // api=POST /API/AUTH/REGITER
 
 export const userRegisterController= async (req,res)=>{
+    try {
+        const {email,password,name,systemUser}=req.body
 
-    const {email,password,name}=req.body
-
-    const isExists= await userModel.findOne({
-        email:email
-    })
-
-    if(isExists){
-        return res.status(422).json({
-            message:"user already exist",
-            status:false
+        const isExists= await userModel.findOne({
+            email:email
         })
+
+        if(isExists){
+            return res.status(422).json({
+                message:"user already exist",
+                status:false
+            })
+        }
+        const user=await userModel.create({
+            email,password,name,
+            systemUser: systemUser === true || systemUser === "true"
+        })
+        //model will give every user a unique id that is user._id that u are sendin in payload of cookie
+        const token = jwt.sign(
+            { userId: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: "3d" }
+        );
+        //now we have to set this token in cokkie
+
+        res.cookie("token",token)
+
+
+        res.status(201).json({
+            user:{
+                _id:user._id,
+                email:user.email,
+                name:user.name,
+                systemUser: user.systemUser
+            },token
+        })
+        await testemail(user.email,user.name)
+    } catch (error) {
+        return res.status(400).json({
+            message: error.message,
+            status: false
+        });
     }
-    const user=await userModel.create({
-        email,password,name
-    })
-    //model will give every user a unique id that is user._id that u are sendin in payload of cookie
-    const token = jwt.sign(
-        { userId: user._id },
-        process.env.JWT_SECRET,
-        { expiresIn: "3d" }
-    );
-    //now we have to set this token in cokkie
-
-    res.cookie("token",token)
-
-
-    res.status(201).json({
-        user:{
-            _id:user._id,
-            email:user.email,
-            name:user.name
-        },token
-    })
-    await testemail(user.email,user.name)
-
 }
 
 //now logicn controllers
 export const  userLoginController= async (req,res)=>{
-    const {email,password}=req.body
+    try {
+        const {email,password}=req.body
 
-    const user= await userModel.findOne({email}).select("+password")
+        const user= await userModel.findOne({email}).select("+password +systemUser")
 
-    if(!user){
-        return res.status(401).json({
-            message:"email or password is invalid",
-            status:false
-        })
-    }
-
-    const valid_password= await user.comparePassword(password)
-
-    if(!valid_password){
-        return res.status(201).json({
-            message:"email or password is invalid",
-            status:false
-        })
-    }
-    const token = jwt.sign(
-        { userId: user._id },
-        process.env.JWT_SECRET,
-        { expiresIn: "3d" }
-    );
-    //now we have to set this token in cokkie
-
-    res.cookie("token",token)
-
-
-
-    res.status(200).json({
-        user:{
-            _id:user._id,
-            email:user.email,
-            name:user.name
+        if(!user){
+            return res.status(401).json({
+                message:"email or password is invalid",
+                status:false
+            })
         }
-    })
 
+        const valid_password= await user.comparePassword(password)
+
+        if(!valid_password){
+            return res.status(401).json({
+                message:"email or password is invalid",
+                status:false
+            })
+        }
+        const token = jwt.sign(
+            { userId: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: "3d" }
+        );
+        //now we have to set this token in cokkie
+
+        res.cookie("token",token)
+
+
+
+        res.status(200).json({
+            user:{
+                _id:user._id,
+                email:user.email,
+                name:user.name,
+                systemUser: user.systemUser
+            },
+            token
+        })
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message,
+            status: false
+        });
+    }
 }
 
 export const userLogoutcontroller = async (req,res)=>{

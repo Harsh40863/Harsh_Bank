@@ -6,7 +6,7 @@ import {createAccountController,getUserAccountsController,getAccountBalanceContr
 
 
 
-export const account_router=express()
+export const account_router=express.Router()
 
 account_router.post("/",authmiddleware,createAccountController)
 account_router.get("/",authmiddleware,getUserAccountsController)
