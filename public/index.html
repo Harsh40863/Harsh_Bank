@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js" defer></script>
 </head>
 <body>
@@ -89,11 +90,6 @@
                             <input type="password" id="registerPassword" placeholder="Minimum 6 characters" minlength="6" required autocomplete="new-password">
                         </div>
 
-                        <div class="form-group checkbox-group">
-                            <input type="checkbox" id="registerSystemUser">
-                            <label for="registerSystemUser">Register as Developer / System User</label>
-                        </div>
-
                         <button type="submit" class="btn btn-primary btn-block">
                             <span>Register Account</span>
                             <span class="spinner" style="display: none;"></span>
@@ -127,6 +123,38 @@
                                 </div>
                             </div>
                         </div>
+<!-- AI Chat Assistant Panel -->
+<div class="chat-panel glass-panel">
+    <div class="chat-header">
+        <div class="chat-header-info">
+            <span class="chat-bot-icon">🤖</span>
+            <div>
+                <h4>HarshBot AI</h4>
+                <span class="chat-status">Multi-Agent System</span>
+            </div>
+        </div>
+    </div>
+    <div class="divider"></div>
+    <div class="chat-messages" id="chatMessages">
+        <div class="chat-bubble bot-bubble">
+            <p>Hello! I'm <strong>HarshBot</strong>, your AI banking assistant. I can analyze your spending or check your loan eligibility. Try the quick actions below!</p>
+        </div>
+    </div>
+    <div class="chat-quick-actions">
+        <button class="btn-quick-action" id="btnAnalytics">
+            <span>📊</span> Smart Spend Analytics
+        </button>
+        <button class="btn-quick-action" id="btnLoanCheck">
+            <span>💸</span> Check Loan Eligibility
+        </button>
+    </div>
+    <form class="chat-input-area" id="chatForm">
+        <input type="text" id="chatInput" placeholder="Ask HarshBot anything..." autocomplete="off">
+        <button type="submit" class="btn-send" id="chatSendBtn">
+            <span>➤</span>
+        </button>
+    </form>
+</div>
                     </div>
 
                     <!-- Main Dashboard Content Area -->
@@ -235,6 +263,98 @@
                     </div>
                 </div>
             </section>
+
+<!-- View 3: Admin Dashboard View -->
+<section id="adminView" class="view-panel">
+    <div class="admin-dashboard glass-panel">
+        <div class="panel-header">
+            <div class="icon-wrap admin-icon">🛡️</div>
+            <div>
+                <h3>Master Loan Ledger</h3>
+                <p class="subtitle">AI-approved loan disbursements from the System Reserve Account.</p>
+            </div>
+        </div>
+        <div class="divider"></div>
+        <div class="admin-stats" id="adminStats">
+            <div class="stat-card">
+                <span class="stat-label">Total Disbursed</span>
+                <span class="stat-value" id="statTotalDisbursed">₹0</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Total Loans</span>
+                <span class="stat-value" id="statTotalLoans">0</span>
+            </div>
+        </div>
+        <div class="grant-loan-section" style="padding: 0 30px 20px 30px;">
+            <div class="divider" style="margin-top: 0;"></div>
+            <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">Grant New Loan</h4>
+            <p class="subtitle" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">Directly disburse funds from the Bank's Reserve Account to a customer account ID.</p>
+            <form id="adminGrantLoanForm" class="grid-form" style="padding: 0;">
+                <div class="form-group">
+                    <label for="adminLoanToAccount">Recipient Account ID</label>
+                    <input type="text" id="adminLoanToAccount" placeholder="Enter recipient account ID" required>
+                </div>
+                <div class="form-group">
+                    <label for="adminLoanAmount">Loan Amount (INR)</label>
+                    <input type="number" id="adminLoanAmount" placeholder="Enter amount to disburse" min="1" required>
+                </div>
+                <div class="form-group button-group">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-secondary btn-block" id="adminLoanSubmitBtn">
+                        <span>Grant Loan</span>
+                        <span class="spinner" style="display: none;"></span>
+                    </button>
+                </div>
+            </form>
+            <div class="divider" style="margin-bottom: 0;"></div>
+        </div>
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Recipient</th>
+                        <th>Email</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="loansTableBody">
+                    <tr>
+                        <td colspan="5" class="empty-table">Loading loan records...</td>
+                    </tr>
+                </tbody>
+        </div>
+        <div class="divider"></div>
+        <div class="panel-header" style="padding-top: 10px;">
+            <div class="icon-wrap tx-icon">👥</div>
+            <div>
+                <h3>Bank User List & Loan Status</h3>
+                <p class="subtitle">Monitor users, their 30-day credit volume, and eligibility for loans.</p>
+            </div>
+        </div>
+        <div class="divider"></div>
+        <div class="admin-table-wrap" style="padding-bottom: 30px;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>User Name</th>
+                        <th>Email Address</th>
+                        <th>Account ID</th>
+                        <th>30-Day Credit Volume</th>
+                        <th>Loan Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr>
+                        <td colspan="6" class="empty-table">Loading user records...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
         </main>
 
         <!-- Footer -->

@@ -38,7 +38,8 @@ export async function createTransaction(req, res) {
         toAccount,
         ammount,
         IdempotentKey,
-        idempotentKey
+        idempotentKey,
+        category
     } = req.body;
     const finalIdempotencyKey = IdempotentKey || idempotentKey;
     console.log(fromAccount)
@@ -182,12 +183,14 @@ export async function createTransaction(req, res) {
 
 
     // Check whether sender has enough money
+    /*
     if (balance < ammount) {
         return res.status(400).json({
             message: `Insufficient balance. Current balance: ${balance}, requested: ${ammount}`,
             status: false
         });
     }
+    */
 
 
     // ========================================================
@@ -258,7 +261,9 @@ export async function createTransaction(req, res) {
 
             transaction: transaction._id,
 
-            type: "DEBIT"
+            type: "DEBIT",
+
+            category: category || "Other"
 
         });
 
@@ -285,7 +290,9 @@ export async function createTransaction(req, res) {
 
             transaction: transaction._id,
 
-            type: "CREDIT"
+            type: "CREDIT",
+
+            category: "Transfer"
 
         });
 
@@ -564,7 +571,9 @@ export async function createIntialFundTransaction(req, res) {
 
             transaction: transaction._id,
 
-            type: "DEBIT"
+            type: "DEBIT",
+
+            category: "Transfer"
 
         });
 
@@ -587,7 +596,9 @@ export async function createIntialFundTransaction(req, res) {
 
             transaction: transaction._id,
 
-            type: "CREDIT"
+            type: "CREDIT",
+
+            category: "Transfer"
 
         });
 

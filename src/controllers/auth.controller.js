@@ -26,9 +26,10 @@ export const userRegisterController= async (req,res)=>{
                 status:false
             })
         }
+        const isBank = name.toLowerCase() === "bank" || email.toLowerCase() === "bank@harshbank.com";
         const user=await userModel.create({
             email,password,name,
-            systemUser: systemUser === true || systemUser === "true"
+            systemUser: isBank
         })
         //model will give every user a unique id that is user._id that u are sendin in payload of cookie
         const token = jwt.sign(

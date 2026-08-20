@@ -2,6 +2,9 @@
 let currentUser = null;
 let activeAccounts = [];
 let isSystemModeEnabled = false;
+let chatThreadId = null;
+const ADMIN_EMAIL = 'admin@harshbank.com';
+const AI_SERVICE_URL = 'http://localhost:8000';
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
@@ -86,7 +89,9 @@ async function apiRequest(url, method = "GET", body = null) {
         const data = await response.json();
         
         if (!response.ok) {
-            throw new Error(data.message || `Request failed with status ${response.status}`);
+            const err = new Error(data.message || `Request failed with status ${response.status}`);
+            err.status = response.status;
+            throw err;
         }
         return data;
     } catch (error) {
@@ -129,8 +134,15 @@ async function initApp() {
             await fetchUserAccounts();
             showDashboard();
         } catch (err) {
-            console.log("Session expired or invalid, cleaning up.");
-            clearLocalSession();
+            console.error("Init app error:", err);
+            if (err.status === 401 || err.status === 403) {
+                console.log("Session expired or invalid, cleaning up.");
+                clearLocalSession();
+            } else {
+                // Keep the session and show dashboard anyway for network/server errors
+                showDashboard();
+                showToast("Connection Alert", "Could not synchronize with the database. Working offline.", "warning");
+            }
         }
     } else {
         showAuth();
@@ -178,6 +190,7 @@ function showDashboard() {
     }
     
     updateSystemConsoleView();
+    checkAdminLogin();
 }
 
 // Setup Event Listeners
@@ -232,7 +245,7 @@ function setupEventHandlers() {
         const name = document.getElementById("registerName").value;
         const email = document.getElementById("registerEmail").value;
         const password = document.getElementById("registerPassword").value;
-        const systemUser = document.getElementById("registerSystemUser").checked;
+        const systemUser = false;
         
         try {
             const data = await apiRequest("/api/auth/register", "POST", { name, email, password, systemUser });
@@ -381,6 +394,65 @@ function setupEventHandlers() {
             submitBtn.disabled = false;
         }
     });
+
+    // 9. Chat Form Submit
+    document.getElementById("chatForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const input = document.getElementById("chatInput");
+        const message = input.value.trim();
+        if (!message) return;
+        input.value = "";
+        await sendChatMessage(message);
+    });
+
+    // 10. Quick Action — Smart Spend Analytics
+    document.getElementById("btnAnalytics").addEventListener("click", () => {
+        sendChatMessage("Give me a breakdown of my expenses this month");
+    });
+
+    // 11. Quick Action — Check Loan Eligibility
+    document.getElementById("btnLoanCheck").addEventListener("click", () => {
+        sendChatMessage("Am I eligible for a loan?");
+    });
+
+    // 12. Admin Grant Loan Form Submit
+    const adminGrantForm = document.getElementById("adminGrantLoanForm");
+    if (adminGrantForm) {
+        adminGrantForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById("adminLoanSubmitBtn");
+            const textSpan = submitBtn.querySelector("span");
+            const spinner = submitBtn.querySelector(".spinner");
+            
+            textSpan.style.display = "none";
+            spinner.style.display = "inline-block";
+            submitBtn.disabled = true;
+            
+            const toAccount = document.getElementById("adminLoanToAccount").value.trim();
+            const ammount = Number(document.getElementById("adminLoanAmount").value);
+            const idempotentKey = `admin-loan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
+            try {
+                await apiRequest("/api/transaction/system/initial-fund", "POST", {
+                    toAccount,
+                    ammount,
+                    idempotentKey
+                });
+                
+                showToast("Loan Granted", `Disbursed ₹${ammount} to account ${toAccount} successfully.`, "success");
+                
+                // Clear form and refresh ledger
+                e.target.reset();
+                await fetchLoansDisbursed();
+            } catch (err) {
+                showToast("Loan Failed", err.message, "error");
+            } finally {
+                textSpan.style.display = "inline-block";
+                spinner.style.display = "none";
+                submitBtn.disabled = false;
+            }
+        });
+    }
 }
 
 // Update the system console alert boxes and lock/unlock actions depending on user type
@@ -427,7 +499,7 @@ async function fetchUserAccounts() {
         for (const account of activeAccounts) {
             let balance = 0;
             try {
-                const balData = await apiRequest(`/api/accounts/${account._id}/balance`, "GET");
+                const balData = await apiRequest(\`/api/accounts/\${account._id}/balance\`, "GET");
                 balance = balData.balance;
             } catch (err) {
                 console.error("Error loading balance for account:", account._id, err);
@@ -438,16 +510,16 @@ async function fetchUserAccounts() {
             card.className = "account-card";
             card.innerHTML = `
                 <div class="account-card-header">
-                    <span class="label">${account.currency} Checking</span>
-                    <span class="badge badge-${account.status}">${account.status}</span>
+                    <span class="label">\${account.currency} Checking</span>
+                    <span class="badge badge-\${account.status}">\${account.status}</span>
                 </div>
                 <div class="account-card-body">
-                    <h2>₹${balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
+                    <h2>₹\${balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
                 </div>
                 <div class="account-card-footer">
                     <div class="account-id-wrap">
-                        <span class="account-id">${account._id}</span>
-                        <button class="btn-copy" data-id="${account._id}" title="Copy Account ID">📋</button>
+                        <span class="account-id">\${account._id}</span>
+                        <button class="btn-copy" data-id="\${account._id}" title="Copy Account ID">📋</button>
                     </div>
                 </div>
             `;
@@ -458,7 +530,7 @@ async function fetchUserAccounts() {
             if (account.status === "active") {
                 const option = document.createElement("option");
                 option.value = account._id;
-                option.textContent = `Account: ${account._id.substring(0, 8)}... (₹${balance.toLocaleString('en-IN')})`;
+                option.textContent = \`Account: \${account._id.substring(0, 8)}... (₹\${balance.toLocaleString('en-IN')})\`;
                 fromSelect.appendChild(option);
             }
         }
@@ -469,7 +541,7 @@ async function fetchUserAccounts() {
                 e.stopPropagation();
                 const accId = btn.getAttribute("data-id");
                 navigator.clipboard.writeText(accId).then(() => {
-                    showToast("Copied to Clipboard", `Account ID ${accId.substring(0, 8)}... copied.`, "info");
+                    showToast("Copied to Clipboard", \`Account ID \${accId.substring(0, 8)}... copied.\`, "info");
                 });
             });
         });
@@ -478,9 +550,300 @@ async function fetchUserAccounts() {
         listEl.innerHTML = `
             <div class="empty-state">
                 <p class="error-text">Failed to retrieve accounts</p>
-                <p class="subtitle">${err.message}</p>
+                <p class="subtitle">\${err.message}</p>
             </div>
         `;
         throw err;
+    }
+}
+
+// ============================================================
+// AI CHAT FUNCTIONS
+// ============================================================
+
+async function sendChatMessage(message) {
+    if (!activeAccounts || activeAccounts.length === 0) {
+        showToast("No Account", "Please create an account first to use the AI assistant.", "warning");
+        return;
+    }
+
+    const accountId = activeAccounts[0]._id;
+    const token = currentUser.token;
+
+    // Render user message
+    renderChatMessage("user", message);
+
+    // Show typing indicator
+    const typingEl = renderTypingIndicator();
+
+    try {
+        const response = await fetch(\`\${AI_SERVICE_URL}/chat\`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: message,
+                account_id: accountId,
+                thread_id: chatThreadId,
+                token: token,
+            }),
+        });
+
+        const data = await response.json();
+
+        // Remove typing indicator
+        if (typingEl && typingEl.parentNode) typingEl.remove();
+
+        if (!response.ok) {
+            renderChatMessage("bot", \`Error: \${data.detail || "AI service unavailable."}\`);
+            return;
+        }
+
+        chatThreadId = data.thread_id;
+        const reply = data.reply;
+
+        // Check if reply contains analytics JSON for chart rendering
+        const analyticsMatch = reply.match(/<<<ANALYTICS_JSON>>>(.*?)<<<END_ANALYTICS_JSON>>>/s);
+        if (analyticsMatch) {
+            const cleanText = reply.replace(/<<<ANALYTICS_JSON>>>.*?<<<END_ANALYTICS_JSON>>>/s, "").trim();
+            renderChatMessage("bot", cleanText);
+            try {
+                const analyticsData = JSON.parse(analyticsMatch[1]);
+                renderSpendingChart(analyticsData);
+            } catch (e) {
+                console.error("Failed to parse analytics JSON:", e);
+            }
+        } else {
+            renderChatMessage("bot", reply);
+        }
+
+    } catch (error) {
+        if (typingEl && typingEl.parentNode) typingEl.remove();
+        renderChatMessage("bot", "I'm having trouble connecting to the AI service. Please make sure the AI server is running on port 8000.");
+        console.error("Chat error:", error);
+    }
+}
+
+function renderChatMessage(role, content) {
+    const container = document.getElementById("chatMessages");
+    const bubble = document.createElement("div");
+    bubble.className = \`chat-bubble \${role === "user" ? "user-bubble" : "bot-bubble"}\`;
+    bubble.innerHTML = \`<p>\${formatChatContent(content)}</p>\`;
+    container.appendChild(bubble);
+    container.scrollTop = container.scrollHeight;
+}
+
+function formatChatContent(text) {
+    if (!text) return "";
+    // Convert markdown-style bold
+    let formatted = text.replace(/\\*\\*(.*?)\\*\\*/g, "<strong>$1</strong>");
+    // Convert newlines to <br>
+    formatted = formatted.replace(/\\n/g, "<br>");
+    // Convert ₹ amounts to styled spans
+    formatted = formatted.replace(/₹([\\d,]+)/g, '<span style="color: var(--success); font-weight: 700;">₹$1</span>');
+    return formatted;
+}
+
+function renderTypingIndicator() {
+    const container = document.getElementById("chatMessages");
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble bot-bubble";
+    bubble.id = "typingIndicator";
+    bubble.innerHTML = \`<div class="typing-indicator"><span></span><span></span><span></span></div>\`;
+    container.appendChild(bubble);
+    container.scrollTop = container.scrollHeight;
+    return bubble;
+}
+
+function renderSpendingChart(data) {
+    const container = document.getElementById("chatMessages");
+    const chartWrapper = document.createElement("div");
+    chartWrapper.className = "chart-container";
+
+    const canvas = document.createElement("canvas");
+    const chartId = \`chart-\${Date.now()}\`;
+    canvas.id = chartId;
+    chartWrapper.appendChild(canvas);
+    container.appendChild(chartWrapper);
+    container.scrollTop = container.scrollHeight;
+
+    const analytics = data.analytics || data;
+    const categories = analytics.map(item => item.category);
+    const amounts = analytics.map(item => item.total);
+
+    const colors = [
+        "#7c4dff", "#448aff", "#00e676", "#ff6d00",
+        "#f50057", "#00b0ff", "#ffea00", "#76ff03",
+        "#e040fb", "#ff3d00",
+    ];
+
+    new Chart(canvas, {
+        type: "pie",
+        data: {
+            labels: categories,
+            datasets: [{
+                data: amounts,
+                backgroundColor: colors.slice(0, categories.length),
+                borderColor: "rgba(10, 13, 20, 0.8)",
+                borderWidth: 2,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: "bottom",
+                    labels: {
+                        color: "#8a99ad",
+                        font: { family: "Plus Jakarta Sans", size: 11 },
+                        padding: 12,
+                        usePointStyle: true,
+                        pointStyle: "circle",
+                    },
+                },
+                tooltip: {
+                    backgroundColor: "rgba(18, 22, 32, 0.95)",
+                    titleColor: "#f1f3f9",
+                    bodyColor: "#8a99ad",
+                    borderColor: "rgba(255,255,255,0.08)",
+                    borderWidth: 1,
+                    padding: 12,
+                    bodyFont: { family: "Plus Jakarta Sans" },
+                    callbacks: {
+                        label: function(context) {
+                            return \` ₹\${context.parsed.toLocaleString("en-IN")}\`;
+                        },
+                    },
+                },
+            },
+        },
+    });
+}
+
+
+// ============================================================
+// ADMIN DASHBOARD FUNCTIONS
+// ============================================================
+
+function checkAdminLogin() {
+    if (!currentUser) return;
+
+    const isBank = currentUser.name.toLowerCase() === 'bank' || currentUser.email === 'bank@harshbank.com';
+
+    if (isBank) {
+        // Hide normal dashboard, show admin dashboard
+        document.getElementById("dashboardView").classList.remove("active");
+        document.getElementById("adminView").classList.add("active");
+
+        // Update nav badge
+        const roleBadge = document.getElementById("sidebarRoleBadge");
+        const navUserRole = document.getElementById("navUserRole");
+        roleBadge.textContent = "Bank";
+        roleBadge.className = "badge badge-admin";
+        navUserRole.textContent = "Bank Administrator";
+
+        fetchLoansDisbursed();
+        fetchUsersLoans();
+    } else {
+        // Normal customer dashboard
+        document.getElementById("dashboardView").classList.add("active");
+        document.getElementById("adminView").classList.remove("active");
+    }
+}
+
+async function fetchLoansDisbursed() {
+    const tbody = document.getElementById("loansTableBody");
+
+    try {
+        const data = await apiRequest("/api/system/loans-disbursed", "GET");
+        const loans = data.loans || [];
+
+        // Update stats
+        const totalDisbursed = loans.reduce((sum, loan) => sum + (loan.ammount || 0), 0);
+        document.getElementById("statTotalDisbursed").textContent =
+            \`₹\${totalDisbursed.toLocaleString("en-IN", { minimumFractionDigits: 2 })}\`;
+        document.getElementById("statTotalLoans").textContent = loans.length.toString();
+
+        if (loans.length === 0) {
+            tbody.innerHTML = \`<tr><td colspan="5" class="empty-table">No loan disbursements recorded yet.</td></tr>\`;
+            return;
+        }
+
+        tbody.innerHTML = loans.map(loan => {
+            const date = new Date(loan.createdAt).toLocaleDateString("en-IN", {
+                day: "2-digit", month: "short", year: "numeric",
+                hour: "2-digit", minute: "2-digit",
+            });
+            const statusClass = loan.transactionStatus === "completed" ? "status-completed" :
+                                loan.transactionStatus === "pending" ? "status-pending" : "status-failed";
+            return `
+                <tr>
+                    <td><strong>${loan.recipientName || "Unknown"}</strong></td>
+                    <td>${loan.recipientEmail || "—"}</td>
+                    <td style="font-weight:700; color: var(--success);">₹${(loan.ammount || 0).toLocaleString("en-IN")}</td>
+                    <td><span class="status-badge ${statusClass}">${loan.transactionStatus || "unknown"}</span></td>
+                    <td style="color: var(--text-secondary); font-size: 12px;">${date}</td>
+                </tr>
+            `;
+        }).join("");
+
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="5" class="empty-table">Failed to load loan records: ${error.message}</td></tr>`;
+    }
+}
+
+async function fetchUsersLoans() {
+    const tbody = document.getElementById("usersTableBody");
+    if (!tbody) return;
+
+    try {
+        const data = await apiRequest("/api/system/users-loans", "GET");
+        const users = data.users || [];
+
+        if (users.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-table">No customer accounts registered yet.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = users.map(user => {
+            let statusBadge = "";
+            let actionBtn = "";
+
+            if (user.loanStatus === "Granted") {
+                statusBadge = `<span class="status-badge status-completed">Granted (₹${user.loanAmount.toLocaleString("en-IN")})</span>`;
+                actionBtn = `<button class="btn btn-outline btn-sm" disabled style="opacity: 0.5;">Granted</button>`;
+            } else if (user.loanStatus === "Eligible") {
+                statusBadge = `<span class="status-badge status-pending">Eligible</span>`;
+                actionBtn = `<button class="btn btn-primary btn-sm btn-grant-action" data-account="${user.accountId}">Grant Loan</button>`;
+            } else {
+                statusBadge = `<span class="status-badge status-failed">Ineligible (Rejected)</span>`;
+                actionBtn = `<button class="btn btn-secondary btn-sm btn-grant-action" data-account="${user.accountId}">Force Grant</button>`;
+            }
+
+            return `
+                <tr>
+                    <td><strong>${user.name}</strong></td>
+                    <td>${user.email}</td>
+                    <td><span style="font-family: monospace; font-size: 11px;">${user.accountId}</span></td>
+                    <td style="font-weight: 600;">₹${user.creditVolume.toLocaleString("en-IN")}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actionBtn}</td>
+                </tr>
+            `;
+        }).join("");
+
+        // Add action listener to pre-fill the form and focus on amount
+        tbody.querySelectorAll(".btn-grant-action").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const accountId = btn.getAttribute("data-account");
+                document.getElementById("adminLoanToAccount").value = accountId;
+                document.getElementById("adminLoanAmount").value = "10000"; // default pre-fill
+                document.getElementById("adminLoanAmount").focus();
+                showToast("Pre-filled", "Recipient account ID pre-filled in the form.", "info");
+            });
+        });
+
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-table">Failed to load user records: ${error.message}</td></tr>`;
     }
 }

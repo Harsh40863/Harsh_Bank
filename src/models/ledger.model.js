@@ -30,9 +30,21 @@ const ledgerSchema=new mongoose.Schema({
         },
         required:[true,"ledge type is required"],
         immutable:true
+    },
+    category:{
+        type:String,
+        enum:{
+            values:["Food","Shopping","Bills","Entertainment","Travel","Health","Education","Investment","Transfer","Other"],
+            message:"Category must be one of: Food, Shopping, Bills, Entertainment, Travel, Health, Education, Investment, Transfer, Other"
+        },
+        default:"Other",
+        immutable:true
     }
 
-})
+},{timestamps:true})
+
+// Compound index for efficient 30-day analytics and loan-eligibility aggregation queries
+ledgerSchema.index({account: 1, type: 1, createdAt: -1})
 
 function preventLedgerModification() {
     throw new Error("Ledger entries are immutable and cannot be modified or deleted");
